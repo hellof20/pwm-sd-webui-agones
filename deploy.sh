@@ -31,7 +31,7 @@ gcloud beta container --project ${PROJECT_ID} node-pools create "gpu-pool" --clu
 
 ## Redis
 gcloud redis instances create --project=${PROJECT_ID}  sd-agones-cache --tier=standard --size=1 --region=${REGION} --redis-version=redis_6_x --network=projects/${PROJECT_ID}/global/networks/${VPC_NETWORK} --connect-mode=DIRECT_PEERING
-export REDIS_IP=$(gcloud redis instances describe sd-agones-cache --region ${REGION} --format=json 2>/dev/null | jq .host)
+export REDIS_IP=$(gcloud redis instances describe sd-agones-cache --region ${REGION} --format=json 2>/dev/null | jq -r .host)
 
 ## Filestore
 gcloud filestore instances create ${FILESTORE_NAME} --zone=${FILESTORE_ZONE} --tier=BASIC_HDD --file-share=name=${FILESHARE_NAME},capacity=1TB --network=name=${VPC_NETWORK}
@@ -90,7 +90,7 @@ gcloud scheduler jobs create http sd-agones-cruiser \
 ## deploy IAP
 gcloud compute addresses create sd-agones --global
 gcloud compute addresses describe sd-agones --global --format=json | jq .address
-kubectl create secret generic iap-secret --from-literal=client_id=279432852451-ikqqo1mjo3dr2qi0es5utir8dplobjal.apps.googleusercontent.com --from-literal=client_secret=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
+kubectl create secret generic iap-secret --from-literal=client_id=aaa --from-literal=client_secret=bbb
 
 envsubst < ingress-iap/managed-cert.yaml | kubectl apply -f -
 kubectl apply -f ingress-iap/backendconfig.yaml

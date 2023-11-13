@@ -97,7 +97,3 @@ kubectl apply -f ingress-iap/backendconfig.yaml
 kubectl apply -f ingress-iap/service.yaml
 kubectl apply -f ingress-iap/ingress.yaml
 
-
-
-## clean
-gcloud container clusters delete ${GKE_CLUSTER_NAME} --region=${REGION}

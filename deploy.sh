@@ -14,6 +14,7 @@ export NGINX_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${BUILD_REGIST}/sd-ngi
 export AGONES_SIDECAR_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${BUILD_REGIST}/sd-agones-sidecar:0.1
 export DOMAIN_NAME=sd.joey618.top
 
+
 ## GKE
 gcloud beta container --project ${PROJECT_ID} clusters create ${GKE_CLUSTER_NAME} --region ${REGION} \
     --no-enable-basic-auth --release-channel "None" \
@@ -26,16 +27,18 @@ gcloud beta container --project ${PROJECT_ID} clusters create ${GKE_CLUSTER_NAME
     --no-enable-intra-node-visibility --default-max-pods-per-node "110" --no-enable-master-authorized-networks \
     --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver,GcpFilestoreCsiDriver \
     --autoscaling-profile optimize-utilization
-
 gcloud beta container --project ${PROJECT_ID} node-pools create "gpu-pool" --cluster ${GKE_CLUSTER_NAME} --region ${REGION} --node-locations ${FILESTORE_ZONE} --machine-type "g2-standard-4" --accelerator "type=nvidia-l4,count=1" --image-type "COS_CONTAINERD" --disk-type "pd-balanced" --disk-size "200" --metadata disable-legacy-endpoints=true --scopes "https://www.googleapis.com/auth/cloud-platform" --enable-autoscaling --total-min-nodes "1" --total-max-nodes "6" --location-policy "ANY" --enable-autoupgrade --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --max-pods-per-node "110" --num-nodes "1"
+
 
 ## Redis
 gcloud redis instances create --project=${PROJECT_ID}  sd-agones-cache --tier=standard --size=1 --region=${REGION} --redis-version=redis_6_x --network=projects/${PROJECT_ID}/global/networks/${VPC_NETWORK} --connect-mode=DIRECT_PEERING
 export REDIS_IP=$(gcloud redis instances describe sd-agones-cache --region ${REGION} --format=json 2>/dev/null | jq -r .host)
 
+
 ## Filestore
 gcloud filestore instances create ${FILESTORE_NAME} --zone=${FILESTORE_ZONE} --tier=BASIC_HDD --file-share=name=${FILESHARE_NAME},capacity=1TB --network=name=${VPC_NETWORK}
 export FILESTORE_IP=$(gcloud filestore instances describe ${FILESTORE_NAME} --project=${PROJECT_ID} --zone=${FILESTORE_ZONE} --format json |jq -r .networks[].ipAddresses[])
+
 
 ## Agones
 helm repo add agones https://agones.dev/chart/stable
@@ -46,9 +49,11 @@ gcloud compute firewall-rules create agones-sd-firewall \
   --allow tcp:7000-8000 \
   --network ${VPC_NETWORK}
 
+
 ## Artifacts
 gcloud artifacts repositories create ${BUILD_REGIST} --repository-format=docker --location=${REGION}
 gcloud auth configure-docker ${REGION}-docker.pkg.dev
+
 
 ## build sd webui image
 cd Stable-Diffusion-on-GCP/Stable-Diffusion-UI-Agones/sd-webui
@@ -85,6 +90,10 @@ gcloud scheduler jobs create http sd-agones-cruiser \
     --location=${REGION} \
     --schedule="*/5 * * * *" \
     --uri=${FUNCTION_URL}
+
+
+## OAuth setup
+Authorized redirect URIs: https://iap.googleapis.com/v1/oauth/clientIds/your_client_id:handleRedirect
 
 
 ## deploy IAP

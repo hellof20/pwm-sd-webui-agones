@@ -16,7 +16,7 @@ export DOMAIN_NAME=sd.joey618.top
 
 
 ## GKE
-gcloud beta container --project ${PROJECT_ID} clusters create ${GKE_CLUSTER_NAME} --region ${REGION} \
+gcloud container --project ${PROJECT_ID} clusters create ${GKE_CLUSTER_NAME} --region ${REGION} \
     --no-enable-basic-auth --release-channel "None" \
     --machine-type "e2-standard-2" \
     --image-type "COS_CONTAINERD" --disk-type "pd-balanced" --disk-size "100" \
@@ -26,8 +26,9 @@ gcloud beta container --project ${PROJECT_ID} clusters create ${GKE_CLUSTER_NAME
     --subnetwork "projects/${PROJECT_ID}/regions/${REGION}/subnetworks/${VPC_SUBNETWORK}" \
     --no-enable-intra-node-visibility --default-max-pods-per-node "110" --no-enable-master-authorized-networks \
     --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver,GcpFilestoreCsiDriver \
-    --autoscaling-profile optimize-utilization
-gcloud beta container --project ${PROJECT_ID} node-pools create "gpu-pool" --cluster ${GKE_CLUSTER_NAME} --region ${REGION} --node-locations ${FILESTORE_ZONE} --machine-type "g2-standard-4" --accelerator "type=nvidia-l4,count=1" --image-type "COS_CONTAINERD" --disk-type "pd-balanced" --disk-size "200" --metadata disable-legacy-endpoints=true --scopes "https://www.googleapis.com/auth/cloud-platform" --enable-autoscaling --total-min-nodes "1" --total-max-nodes "6" --location-policy "ANY" --enable-autoupgrade --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --max-pods-per-node "110" --num-nodes "1"
+    --autoscaling-profile optimize-utilization \
+    --enable-image-streaming
+gcloud container --project ${PROJECT_ID} node-pools create "gpu-pool" --cluster ${GKE_CLUSTER_NAME} --region ${REGION} --node-locations ${FILESTORE_ZONE} --machine-type "g2-standard-4" --accelerator "type=nvidia-l4,count=1" --image-type "COS_CONTAINERD" --disk-type "pd-balanced" --disk-size "200" --metadata disable-legacy-endpoints=true --scopes "https://www.googleapis.com/auth/cloud-platform" --enable-autoscaling --total-min-nodes "1" --total-max-nodes "6" --location-policy "ANY" --enable-autoupgrade --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --max-pods-per-node "110" --num-nodes "1"
 
 
 ## Redis
@@ -44,6 +45,7 @@ export FILESTORE_IP=$(gcloud filestore instances describe ${FILESTORE_NAME} --pr
 helm repo add agones https://agones.dev/chart/stable
 helm repo update
 kubectl create namespace agones-system
+cd agones
 helm install sd-agones-release --namespace agones-system -f values.yaml agones/agones --version 1.30.0
 gcloud compute --project=speedy-victory-336109 firewall-rules create agones-sd-firewall \
 --network=${VPC_NETWORK} \
@@ -77,8 +79,9 @@ docker push $AGONES_SIDECAR_IMAGE
 ## Deploy stable-diffusion
 gcloud container clusters get-credentials ${GKE_CLUSTER_NAME} --region ${REGION}
 kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded-latest.yaml
-envsubst < agones/nfs_pv.yaml  | kubectl apply -f - # todo
-envsubst < agones/fleet_pvc.yaml  | kubectl apply -f -
+cd ..
+envsubst < agones/nfs_pv_pvc.yaml  | kubectl apply -f -
+envsubst < agones/fleet.yaml  | kubectl apply -f -
 kubectl apply -f agones/fleet_autoscale.yaml
 envsubst < nginx/deployment.yaml  | kubectl apply -f -
 
@@ -88,6 +91,7 @@ gcloud compute networks vpc-access connectors create sd-agones-connector --netwo
 ## Deploy Cloud Function Cruiser Program
 cd cloud-function
 gcloud functions deploy redis_http --runtime python310 --trigger-http --allow-unauthenticated --region=${REGION} --vpc-connector=sd-agones-connector --egress-settings=private-ranges-only --set-env-vars=REDIS_HOST=${REDIS_IP}
+##可能需要手动加一下alluser
 export FUNCTION_URL=$(gcloud functions describe redis_http --region ${REGION} --format=json | jq -r .httpsTrigger.url)
 gcloud scheduler jobs create http sd-agones-cruiser \
     --location=${REGION} \

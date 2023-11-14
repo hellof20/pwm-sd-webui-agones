@@ -66,8 +66,7 @@ docker build . -t $SD_WEBUI_IMAGE
 docker push $SD_WEBUI_IMAGE
 ## Build nginx proxy image
 cd ../nginx
-sed "s@\"\${REDIS_HOST}\"@${REDIS_IP}@g" sd.lua > _tmp
-mv _tmp sd.lua
+envsubst < sd.lua.template >sd.lua
 docker build . -t $NGINX_IMAGE
 docker push $NGINX_IMAGE
 ## Build agones-sidecar image

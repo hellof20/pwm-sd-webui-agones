@@ -45,9 +45,12 @@ helm repo add agones https://agones.dev/chart/stable
 helm repo update
 kubectl create namespace agones-system
 helm install sd-agones-release --namespace agones-system -f values.yaml agones/agones --version 1.30.0
-gcloud compute firewall-rules create agones-sd-firewall \
-  --allow tcp:7000-8000 \
-  --network ${VPC_NETWORK}
+gcloud compute --project=speedy-victory-336109 firewall-rules create agones-sd-firewall \
+--network=${VPC_NETWORK} \
+--action=ALLOW \
+--rules=tcp:7000-8000,tcp:8080,tcp:8081,udp:7000-8000 \
+--source-ranges=0.0.0.0/0 \
+--project ${PROJECT_ID}
 
 
 ## Artifacts

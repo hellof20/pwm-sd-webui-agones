@@ -44,25 +44,14 @@ spec:
           - name: stable-diffusion-webui
             image: $SD_WEBUI_IMAGE
             volumeMounts:
-            - mountPath: /result
-              name: stable-diffusion-storage
-            - mountPath: /models/Stable-diffusion
+            - mountPath: /sd_dir
               name: stable-diffusion-storage
             - mountPath: /stable-diffusion-webui/models/Lora
               name: stable-diffusion-storage
               subPath: models/Lora
-            - mountPath: /stable-diffusion-webui/extensions
-              name: stable-diffusion-storage
-              subPath: extensions
             - mountPath: /stable-diffusion-webui/models/Stable-diffusion
               name: stable-diffusion-storage
               subPath: models/Stable-diffusion
-            - mountPath: /stable-diffusion-webui/models/ControlNet
-              name: stable-diffusion-storage
-              subPath: models/ControlNet
-            - mountPath: /stable-diffusion-webui/embeddings
-              name: stable-diffusion-storage
-              subPath: embeddings
             resources:
               limits:
                 nvidia.com/gpu: 1

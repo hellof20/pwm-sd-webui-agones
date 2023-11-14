@@ -43,6 +43,7 @@ spec:
                 cpu: "100m"
           - name: stable-diffusion-webui
             image: $SD_WEBUI_IMAGE
+            imagePullPolicy: Always
             volumeMounts:
             - mountPath: /sd_dir
               name: stable-diffusion-storage

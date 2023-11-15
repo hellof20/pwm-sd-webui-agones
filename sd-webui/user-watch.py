@@ -27,9 +27,9 @@ for line in r.iter_lines(decode_unicode=True):
             Path(os.path.join(mount_dir, userid, 'outputs')).mkdir(parents=True, exist_ok=True)
             os.symlink(os.path.join(mount_dir, userid, 'outputs'), '/stable-diffusion-webui/outputs', target_is_directory = True)
 
-            # if os.path.isdir('/stable-diffusion-webui/extensions'):
-            #     shutil.rmtree('/stable-diffusion-webui/extensions')
+            if os.path.isdir('/stable-diffusion-webui/extensions'):
+                shutil.rmtree('/stable-diffusion-webui/extensions')
             Path(os.path.join(mount_dir, userid, 'extensions')).mkdir(parents=True, exist_ok=True)
-            os.symlink(os.path.join(mount_dir, userid, 'extensions'), '/stable-diffusion-webui/extensions/user_extensions', target_is_directory = True)
+            os.symlink(os.path.join(mount_dir, userid, 'extensions'), '/stable-diffusion-webui/extensions', target_is_directory = True)
 
             break

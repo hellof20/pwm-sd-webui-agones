@@ -10,7 +10,7 @@ export FILESTORE_ZONE=us-central1-b
 export FILESHARE_NAME=sd
 export BUILD_REGIST=sd-repo
 export SD_WEBUI_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${BUILD_REGIST}/sd-webui:5
-export NGINX_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${BUILD_REGIST}/sd-nginx:0.1
+export NGINX_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${BUILD_REGIST}/sd-nginx:0.2
 export AGONES_SIDECAR_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${BUILD_REGIST}/sd-agones-sidecar:0.1
 export DOMAIN_NAME=sd.joey618.top
 
@@ -121,13 +121,11 @@ gcloud scheduler jobs create http sd-agones-cruiser \
 ## OAuth setup
 Authorized redirect URIs: https://iap.googleapis.com/v1/oauth/clientIds/your_client_id:handleRedirect
 
-
-## deploy IAP
+## dns point to this ip address
 gcloud compute addresses create sd-agones --global
 gcloud compute addresses describe sd-agones --global --format=json | jq .address
-kubectl create secret generic iap-secret --from-literal=client_id=aaa --from-literal=client_secret=bbb
 
+## deploy IAP
+kubectl create secret generic iap-secret --from-literal=client_id=aaa --from-literal=client_secret=bbb
 envsubst < ingress-iap/managed-cert.yaml | kubectl apply -f -
-kubectl apply -f ingress-iap/backendconfig.yaml
-kubectl apply -f ingress-iap/service.yaml
-kubectl apply -f ingress-iap/ingress.yaml
+kubectl apply -f ingress-iap/sd-ingress-iap.yaml

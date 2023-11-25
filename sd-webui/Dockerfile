@@ -1,56 +1,63 @@
-FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
-# FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
+FROM alpine/git:2.36.2 as download
 
-RUN set -ex && \
-    apt update && \
-    apt install -y wget git python3 python3-venv python3-pip libglib2.0-0 pkg-config libcairo2-dev ffmpeg libsm6 libxext6 libtcmalloc-minimal4 && \
-    rm -rf /var/lib/apt/lists/*
+COPY clone.sh /clone.sh
 
-RUN python3 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118 --prefer-binary
-RUN python3 -m pip install git+https://github.com/TencentARC/GFPGAN.git@8d2447a2d918f8eba5a4a01463fd48e45126a379 --prefer-binary
-RUN python3 -m pip install git+https://github.com/openai/CLIP.git@d50d76daa670286dd6cacf3bcd80b5e4823fc8e1 --prefer-binary
-RUN python3 -m pip install git+https://github.com/mlfoundations/open_clip.git@bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b --prefer-binary
-# RUN python3 -m pip install xformers --prefer-binary
-RUN python3 -m pip install pyngrok --prefer-binary
-RUN git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
-RUN git -C /stable-diffusion-webui checkout 89f9faa63388756314e8a1d96cf86bf5e0663045
-RUN git clone https://github.com/Stability-AI/stablediffusion.git /stable-diffusion-webui/repositories/stable-diffusion-stability-ai
-RUN git -C /stable-diffusion-webui/repositories/stable-diffusion-stability-ai checkout cf1d67a6fd5ea1aa600c4df58e5b47da45f6bdbf
-RUN git clone https://github.com/CompVis/taming-transformers.git /stable-diffusion-webui/repositories/taming-transformers
-RUN git -C /stable-diffusion-webui/repositories/taming-transformers checkout 24268930bf1dce879235a7fddd0b2355b84d7ea6
-RUN git clone https://github.com/crowsonkb/k-diffusion.git /stable-diffusion-webui/repositories/k-diffusion
-RUN git -C /stable-diffusion-webui/repositories/k-diffusion checkout c9fe758757e022f05ca5a53fa8fac28889e4f1cf
-RUN git clone https://github.com/sczhou/CodeFormer.git /stable-diffusion-webui/repositories/CodeFormer
-RUN git -C /stable-diffusion-webui/repositories/CodeFormer checkout c5b4593074ba6214284d6acd5f1719b6c5d739af
-RUN git clone https://github.com/salesforce/BLIP.git /stable-diffusion-webui/repositories/BLIP
-RUN git -C /stable-diffusion-webui/repositories/BLIP checkout 48211a1594f1321b00f14c9f7a5b4813144b2fb9
-RUN python3 -m pip install -r /stable-diffusion-webui/repositories/CodeFormer/requirements.txt --prefer-binary
-RUN python3 -m pip install -r /stable-diffusion-webui/requirements_versions.txt --prefer-binary
 
-RUN set -ex && cd stable-diffusion-webui \
-    && git clone https://github.com/kohya-ss/sd-webui-additional-networks.git extensions/sd-webui-additional-networks \
-    && git clone https://github.com/hnmr293/sd-webui-cutoff.git extensions/sd-webui-cutoff \
-    && git clone https://github.com/toriato/stable-diffusion-webui-wd14-tagger.git extensions/stable-diffusion-webui-wd14-tagger \
-    && git clone https://github.com/DominikDoom/a1111-sd-webui-tagcomplete.git extensions/a1111-sd-webui-tagcomplete \
-    && git clone https://github.com/Mikubill/sd-webui-controlnet.git extensions/sd-webui-controlnet \
-    && git clone https://github.com/zanllp/sd-webui-infinite-image-browsing.git extensions/sd-webui-infinite-image-browsing \
-    && git -C /stable-diffusion-webui/extensions/sd-webui-infinite-image-browsing checkout 4720b15126c3ee05e97d50108050d1178e50639b \
-    && git clone https://github.com/aria1th/Hypernetwork-MonkeyPatch-Extension.git extensions/Hypernetwork-MonkeyPatch-Extension \
-    && git clone https://github.com/butaixianran/Stable-Diffusion-Webui-Civitai-Helper.git extensions/Stable-Diffusion-Webui-Civitai-Helper \
-    && git clone https://github.com/ilian6806/stable-diffusion-webui-state.git extensions/stable-diffusion-webui-state \
-    && git clone https://github.com/vladmandic/sd-extension-system-info extensions/sd-extension-system-info
-    # && git clone https://github.com/continue-revolution/sd-webui-segment-anything extensions/sd-webui-segment-anything
+RUN . /clone.sh stable-diffusion-stability-ai https://github.com/Stability-AI/stablediffusion.git cf1d67a6fd5ea1aa600c4df58e5b47da45f6bdbf \
+  && rm -rf assets data/**/*.png data/**/*.jpg data/**/*.gif
 
-RUN python3 -m pip install -r /stable-diffusion-webui/extensions/sd-webui-controlnet/requirements.txt --prefer-binary
-# RUN python3 -m pip install -r /stable-diffusion-webui/extensions/sd-webui-segment-anything/requirements.txt --prefer-binary
+RUN . /clone.sh CodeFormer https://github.com/sczhou/CodeFormer.git c5b4593074ba6214284d6acd5f1719b6c5d739af \
+  && rm -rf assets inputs
 
-ENV SAFETENSORS_FAST_GPU=1
-ENV LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4"
+RUN . /clone.sh BLIP https://github.com/salesforce/BLIP.git 48211a1594f1321b00f14c9f7a5b4813144b2fb9
+RUN . /clone.sh k-diffusion https://github.com/crowsonkb/k-diffusion.git ab527a9a6d347f364e3d185ba6d714e22d80cb3c
+RUN . /clone.sh clip-interrogator https://github.com/pharmapsychotic/clip-interrogator 2cf03aaf6e704197fd0dae7c7f96aa59cf1b11c9
+RUN . /clone.sh generative-models https://github.com/Stability-AI/generative-models 45c443b316737a4ab6e40413d7794a7f5657c19f
 
+
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+
+ENV DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1
+
+RUN --mount=type=cache,target=/var/cache/apt \
+  apt-get update && \
+  # we need those
+  apt-get install -y fonts-dejavu-core rsync git jq moreutils aria2 \
+  # extensions needs those
+  ffmpeg libglfw3-dev libgles2-mesa-dev pkg-config libcairo2 libcairo2-dev build-essential
+
+
+WORKDIR /
+RUN --mount=type=cache,target=/root/.cache/pip \
+  git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git && \
+  cd stable-diffusion-webui && \
+  git reset --hard 4afaaf8a020c1df457bcf7250cb1c7f609699fa7 && \
+  pip install -r requirements_versions.txt
+
+
+ENV ROOT=/stable-diffusion-webui
+
+COPY --from=download /repositories/ ${ROOT}/repositories/
+RUN mkdir ${ROOT}/interrogate && cp ${ROOT}/repositories/clip-interrogator/clip_interrogator/data/* ${ROOT}/interrogate
+RUN --mount=type=cache,target=/root/.cache/pip \
+  pip install -r ${ROOT}/repositories/CodeFormer/requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+  pip install pyngrok xformers \
+  git+https://github.com/TencentARC/GFPGAN.git@8d2447a2d918f8eba5a4a01463fd48e45126a379 \
+  git+https://github.com/openai/CLIP.git@d50d76daa670286dd6cacf3bcd80b5e4823fc8e1 \
+  git+https://github.com/mlfoundations/open_clip.git@bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b
+
+RUN \
+  # mv ${ROOT}/style.css ${ROOT}/user.css && \
+  # one of the ugliest hacks I ever wrote \
+  sed -i 's/in_app_dir = .*/in_app_dir = True/g' /opt/conda/lib/python3.10/site-packages/gradio/routes.py && \
+  git config --global --add safe.directory '*'
+
+WORKDIR ${ROOT}
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV CLI_ARGS=""
 EXPOSE 7860
-
-COPY user-watch.py /stable-diffusion-webui/user-watch.py
-COPY start.sh /stable-diffusion-webui/start.sh
-
-WORKDIR /stable-diffusion-webui/
-CMD ["python3", "webui.py", "--listen", "--opt-sdp-attention", "--enable-insecure-extension-access", "--api"]
+COPY user-watch.py ${ROOT}/user-watch.py
+COPY start.sh ${ROOT}/start.sh
+CMD python -u webui.py --xformers --listen --port 7860 --enable-insecure-extension-access ${CLI_ARGS}

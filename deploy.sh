@@ -30,36 +30,36 @@ gcloud container --project ${PROJECT_ID} clusters create ${GKE_CLUSTER_NAME} --r
     --enable-image-streaming
 
 gcloud container --project ${PROJECT_ID} node-pools create "gpu-pool" \
---cluster ${GKE_CLUSTER_NAME} \
---region ${REGION} \
---node-locations ${FILESTORE_ZONE} \
---machine-type "g2-standard-4" --accelerator "type=nvidia-l4,count=1" \
---image-type "COS_CONTAINERD" --disk-type "pd-balanced" --disk-size "200" \
---metadata disable-legacy-endpoints=true \
---scopes "https://www.googleapis.com/auth/cloud-platform" \
---enable-autoscaling --total-min-nodes "1" --total-max-nodes "6" \
---location-policy "ANY" --enable-autoupgrade \
---enable-autorepair \
---max-surge-upgrade 1 --max-unavailable-upgrade 0 \
---max-pods-per-node "110" --num-nodes "1"
+    --cluster ${GKE_CLUSTER_NAME} \
+    --region ${REGION} \
+    --node-locations ${FILESTORE_ZONE} \
+    --machine-type "g2-standard-4" --accelerator "type=nvidia-l4,count=1" \
+    --image-type "COS_CONTAINERD" --disk-type "pd-balanced" --disk-size "200" \
+    --metadata disable-legacy-endpoints=true \
+    --scopes "https://www.googleapis.com/auth/cloud-platform" \
+    --enable-autoscaling --total-min-nodes "1" --total-max-nodes "6" \
+    --location-policy "ANY" --enable-autoupgrade \
+    --enable-autorepair \
+    --max-surge-upgrade 1 --max-unavailable-upgrade 0 \
+    --max-pods-per-node "110" --num-nodes "1"
 
 
 ## Redis
 gcloud redis instances create sd-agones-cache \
---project=${PROJECT_ID} \
---tier=standard --size=1 --region=${REGION} \
---redis-version=redis_6_x \
---network=projects/${PROJECT_ID}/global/networks/${VPC_NETWORK} \
---connect-mode=DIRECT_PEERING
+    --project=${PROJECT_ID} \
+    --tier=standard --size=1 --region=${REGION} \
+    --redis-version=redis_6_x \
+    --network=projects/${PROJECT_ID}/global/networks/${VPC_NETWORK} \
+    --connect-mode=DIRECT_PEERING
 export REDIS_IP=$(gcloud redis instances describe sd-agones-cache --project=${PROJECT_ID} --region ${REGION} --format=json 2>/dev/null | jq -r .host)
 
 
 ## Filestore
 gcloud filestore instances create ${FILESTORE_NAME} \
---project=${PROJECT_ID} --zone=${FILESTORE_ZONE} \
---tier=BASIC_HDD \
---file-share=name=${FILESHARE_NAME},capacity=1TB \
---network=name=${VPC_NETWORK}
+    --project=${PROJECT_ID} --zone=${FILESTORE_ZONE} \
+    --tier=BASIC_HDD \
+    --file-share=name=${FILESHARE_NAME},capacity=1TB \
+    --network=name=${VPC_NETWORK}
 export FILESTORE_IP=$(gcloud filestore instances describe ${FILESTORE_NAME} --project=${PROJECT_ID} --zone=${FILESTORE_ZONE} --format json |jq -r .networks[].ipAddresses[])
 
 

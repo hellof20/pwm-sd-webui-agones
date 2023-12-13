@@ -22,14 +22,20 @@ spec:
             image: $AGONES_SIDECAR_IMAGE
             resources:
               requests:
-                memory: "128Mi"
-                cpu: "100m"
+                memory: "256Mi"
+                cpu: "200m"
               limits:
-                memory: "128Mi"
-                cpu: "100m"
+                memory: "256Mi"
+                cpu: "200m"
           - name: stable-diffusion-webui
             image: $SD_WEBUI_IMAGE
             imagePullPolicy: Always
+            livenessProbe:
+              httpGet:
+                path: /docs
+                port: 7860
+              initialDelaySeconds: 60
+              periodSeconds: 3
             command: ["/bin/sh", "start.sh"]
             volumeMounts:
             - mountPath: /sd_dir

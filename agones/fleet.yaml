@@ -48,7 +48,7 @@ spec:
               subPath: models/Stable-diffusion
             resources:
               limits:
-                nvidia.com/gpu: 1
+                nvidia.com/gpu: "1"
           volumes:
             - name: stable-diffusion-storage
               persistentVolumeClaim:
